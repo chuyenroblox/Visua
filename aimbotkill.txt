@@ -1,0 +1,48 @@
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local CurrentTarget = nil
+
+local function IsValidTarget(player)
+    return player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChildOfClass("Humanoid")
+        and player.Team ~= LocalPlayer.Team
+        and player.Character:FindFirstChildOfClass("Humanoid").Health > 0
+end
+
+local function HookAttack()
+    local old; old = hookmetamethod(game, "__namecall", function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod()
+
+        if method == "InvokeServer" and tostring(self) == "CommE" then
+            local arg1 = args[1]
+            local targetPlayer = args[2]
+
+            if arg1 == "Attack" and typeof(targetPlayer) == "Instance" and targetPlayer:IsA("Model") then
+                local plr = Players:GetPlayerFromCharacter(targetPlayer)
+                if IsValidTarget(plr) then
+                    CurrentTarget = plr
+                end
+            end
+        end
+        return old(self, ...)
+    end)
+end
+
+RunService.RenderStepped:Connect(function()
+    if CurrentTarget and IsValidTarget(CurrentTarget) then
+        local hrp = CurrentTarget.Character:FindFirstChild("HumanoidRootPart")
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, hrp.Position)
+    else
+        CurrentTarget = nil
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function()
+    CurrentTarget = nil
+end)
+
+HookAttack()
